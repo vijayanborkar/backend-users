@@ -1,61 +1,50 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const port = 3000;
+const userModel = require("./models/user");
+const sequelize = require("./lib/sequelize");
 
 app.use(cors());
-app.use(express());
+app.use(express.json());
 
-const users = [
-  {
-    id: 1,
-    username: "octocat",
-    name: "The Octocat",
-    repoCount: 8,
-    location: "San Francisco",
-  },
-  {
-    id: 2,
-    username: "torvalds",
-    name: "Linus Torvalds",
-    repoCount: 25,
-    location: "Portland",
-  },
-  {
-    id: 3,
-    username: "gaearon",
-    name: "Dan Abramov",
-    repoCount: 50,
-    location: "London",
-  },
-  {
-    id: 4,
-    username: "addyosmani",
-    name: "Addy Osmani",
-    repoCount: 42,
-    location: "Mountain View",
-  },
-  {
-    id: 5,
-    username: "tj",
-    name: "TJ Holowaychuk",
-    repoCount: 150,
-    location: "Victoria",
-  },
-];
+sequelize
+  .sync()
+  .then(() => {
+    console.log("Database connected and synced.");
+  })
+  .catch((error) => {
+    console.error("Unable to connect to database", error);
+  });
 
 // Exercise 2: Get all users
-app.get("/users", (req, res) => {
-  res.json({ users });
+app.get("/users", async (req, res) => {
+  try {
+    const users = await userModel.findAll();
+    res.json({ users });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Failed to fetch all users." });
+  }
 });
 
 //  Exercise 3: Get user by ID
-app.get("/users/:id", (req, res) => {
-  let id = parseInt(req.params.id);
-  let result = users.find((user) => user.id === id);
-  res.json({ user: result });
+app.get("/users/:id", async (req, res) => {
+  try {
+    let userId = parseInt(req.params.id);
+    let user = await userModel.findByPk(userId);
+    if (user) {
+      res.json({ user });
+    } else {
+      res.status(404).json({ message: "User not found." });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch user" });
+  }
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on ${port}`);
+const PORT = process.env.PORT;
+app.listen(PORT, () => {
+  console.log(`Server is running on ${PORT}`);
 });
